@@ -7,7 +7,8 @@ import {
   FileCheck, 
   LogOut,
   Menu,
-  X
+  X,
+  BookOpen
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -16,6 +17,7 @@ const navigation = [
   { name: 'API Keys', to: '/dashboard/api-keys', icon: Key },
   { name: 'Billing', to: '/dashboard/billing', icon: CreditCard },
   { name: 'Verifications', to: '/dashboard/verifications', icon: FileCheck },
+  { name: 'API Docs', to: '/dashboard/api-docs', icon: BookOpen },
 ];
 
 export default function DashboardLayout() {

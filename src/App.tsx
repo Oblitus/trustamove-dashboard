@@ -5,6 +5,7 @@ import OverviewPage from './pages/OverviewPage';
 import ApiKeysPage from './pages/ApiKeysPage';
 import BillingPage from './pages/BillingPage';
 import VerificationsPage from './pages/VerificationsPage';
+import ApiDocsPage from './pages/ApiDocsPage';
 import DashboardLayout from './components/DashboardLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -27,6 +28,7 @@ function App() {
           <Route path="api-keys" element={<ApiKeysPage />} />
           <Route path="billing" element={<BillingPage />} />
           <Route path="verifications" element={<VerificationsPage />} />
+          <Route path="api-docs" element={<ApiDocsPage />} />
         </Route>
 
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
