@@ -50,6 +50,12 @@ export default function ApiDocsPage() {
               pathInMiddlePanel: true,
               requiredPropsFirst: true,
               sortPropsAlphabetically: false,
+              disableSearch: false,
+              expandSingleSchemaField: true,
+              showExtensions: true,
+              hideSchemaTitles: false,
+              simpleOneOfTypeLabel: false,
+              payloadSampleIdx: 0,
               theme: {
                 colors: {
                   primary: {
