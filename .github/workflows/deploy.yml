@@ -27,3 +27,14 @@ jobs:
             --build-arg VITE_SUPABASE_URL="${{ secrets.VITE_SUPABASE_URL }}" \
             --build-arg VITE_SUPABASE_ANON_KEY="${{ secrets.VITE_SUPABASE_ANON_KEY }}" \
             --app trustamove-dashboard
+      
+      - name: Wait for Deployment
+        run: |
+          echo "Waiting for dashboard to be accessible..."
+          timeout 60 bash -c 'until curl -sf https://trustamove-dashboard.fly.dev; do sleep 2; done' || echo "Timeout (app may still be starting)"
+      
+      - name: Deployment Summary
+        run: |
+          echo "✅ Dashboard deployed to: https://trustamove-dashboard.fly.dev"
+          echo "🚀 Deployment complete!" >> $GITHUB_STEP_SUMMARY
+          echo "Dashboard URL: https://trustamove-dashboard.fly.dev" >> $GITHUB_STEP_SUMMARY

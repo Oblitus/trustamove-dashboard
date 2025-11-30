@@ -1,0 +1,110 @@
+name: PR Preview Deployment
+
+on:
+  pull_request:
+    types: [labeled, synchronize]
+    branches: [ main ]
+  pull_request_target:
+    types: [closed]
+
+jobs:
+  deploy-preview:
+    name: Deploy Preview to Fly.io
+    runs-on: ubuntu-latest
+    if: |
+      github.event.action != 'closed' && 
+      contains(github.event.pull_request.labels.*.name, 'deploy-preview')
+    
+    environment:
+      name: pr-${{ github.event.number }}
+      url: https://trustamove-dashboard-pr-${{ github.event.number }}.fly.dev
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Setup Flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Create or Get Preview App
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          APP_NAME="trustamove-dashboard-pr-${{ github.event.number }}"
+          
+          # Check if app exists, create if not
+          if ! flyctl apps list | grep -q "$APP_NAME"; then
+            flyctl apps create $APP_NAME --org personal
+            
+            # Allocate IPv4 and IPv6
+            flyctl ips allocate-v4 --app $APP_NAME
+            flyctl ips allocate-v6 --app $APP_NAME
+          fi
+
+      - name: Deploy to Preview
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          APP_NAME="trustamove-dashboard-pr-${{ github.event.number }}"
+          
+          # Deploy with reduced resources for preview
+          flyctl deploy \
+            --remote-only \
+            --app $APP_NAME \
+            --build-arg VITE_SUPABASE_URL="${{ secrets.VITE_SUPABASE_URL }}" \
+            --build-arg VITE_SUPABASE_ANON_KEY="${{ secrets.VITE_SUPABASE_ANON_KEY }}" \
+            --vm-memory 256 \
+            --ha=false
+      
+      - name: Wait for Deployment
+        run: |
+          APP_NAME="trustamove-dashboard-pr-${{ github.event.number }}"
+          echo "Waiting for app to be accessible..."
+          timeout 60 bash -c 'until curl -sf https://'$APP_NAME'.fly.dev; do sleep 2; done' || echo "Timeout (app may still be starting)"
+      
+      - name: Comment PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const appName = `trustamove-dashboard-pr-${{ github.event.number }}`;
+            const url = `https://${appName}.fly.dev`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 **Dashboard Preview Ready!**\n\n✅ Deployed to: ${url}\n\n_This preview app will auto-suspend when idle and be destroyed when the PR is closed._`
+            })
+
+  cleanup-preview:
+    name: Cleanup Preview App
+    runs-on: ubuntu-latest
+    if: |
+      github.event.action == 'closed' &&
+      contains(github.event.pull_request.labels.*.name, 'deploy-preview')
+    
+    steps:
+      - name: Setup Flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Destroy Preview App
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          APP_NAME="trustamove-dashboard-pr-${{ github.event.number }}"
+          
+          echo "🗑️ Destroying preview app: $APP_NAME"
+          flyctl apps destroy $APP_NAME --yes || echo "App may have already been destroyed"
+      
+      - name: Comment PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🗑️ Preview app destroyed - resources cleaned up.`
+            })
