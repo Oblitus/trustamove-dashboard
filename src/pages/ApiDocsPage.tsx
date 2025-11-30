@@ -23,7 +23,7 @@ export default function ApiDocsPage() {
       if (containerRef.current && (window as any).Redoc) {
         try {
           // Fetch OpenAPI spec with proper Accept header
-          const response = await fetch(import.meta.env.VITE_API_URL + '/q/openapi', {
+          const response = await fetch(import.meta.env.VITE_API_BASE_URL + '/q/openapi', {
             headers: {
               'Accept': 'application/json'
             }
